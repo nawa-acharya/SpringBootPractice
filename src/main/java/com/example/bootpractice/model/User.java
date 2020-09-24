@@ -1,6 +1,7 @@
 package com.example.bootpractice.model;
 
 import javax.persistence.*;
+import javax.validation.constraints.Size;
 import java.util.List;
 
 /**
@@ -15,6 +16,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
+    @Size(min = 0, max = 255)
     private String firstName;
 
     private String lastName;

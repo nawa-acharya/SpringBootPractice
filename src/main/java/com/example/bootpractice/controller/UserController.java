@@ -9,7 +9,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +42,7 @@ public class UserController {
     public ResponseEntity<List<User>> findAllUsers() {
         List<User> userList = userService.findAllUsers();
         if (userList == null) userList = new ArrayList<>();
+        userList.forEach(user -> user.setUserHistoryList(new ArrayList<>()));
         return new ResponseEntity<>(userList, HttpStatus.FOUND);
     }
 
@@ -47,9 +52,9 @@ public class UserController {
         return userService.findUser(id);
     }
 
-    @GetMapping(value = "/find/{fName}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/findByName/{fName}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public User findUser(@PathVariable("fName") String name) {
+    public ResponseEntity<User> findUser(@PathVariable("fName") String name) {
         List<User> userList = userService.findAllUsers();
         User finalUser = null;
         if (userList != null)
@@ -63,17 +68,24 @@ public class UserController {
             finalUser = new User();
             finalUser.setFirstName("NULL");
         }
-        return restTemplate.getForObject("/find/{fName}", User.class, finalUser);
+        return new ResponseEntity<User>(finalUser, HttpStatus.FOUND);
     }
 
-    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ResponseEntity<User> saveUser(@RequestBody User user) {
+    public ResponseEntity<Object> saveUser(@RequestBody User user) {
         User savedUser = userService.save(user);
-        return new ResponseEntity<>(savedUser, HttpStatus.OK);
+        URI location =
+                ServletUriComponentsBuilder
+                        .fromCurrentRequest()
+                        .path("{/id}")
+                        .buildAndExpand(savedUser.getId())
+                        .toUri();
+        return ResponseEntity.created(location).build();
+
     }
 
-    @DeleteMapping(value = "/delete", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/delete", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public boolean removeUser(@RequestBody User user) {
         return userService.removeUser(user);
